@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Melroy Pereira</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Space+Grotesk:wght@500;700&display=swap">
+<style>
+  :root {
+    --bg: #fafaf9; --fg: #1a1a19; --fg2: #4a4a46; --muted: #8a8a84;
+    --accent: #2563eb; --accent-hover: #1d4ed8;
+    --card-bg: #f1f0ed; --line: #e2e1dc;
+    --font-display: 'Space Grotesk', system-ui, sans-serif;
+    --font-body: 'Inter', system-ui, sans-serif;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg: #111110; --fg: #e8e8e4; --fg2: #b0b0a8; --muted: #6a6a64;
+      --accent: #60a5fa; --accent-hover: #93bbfd;
+      --card-bg: #1c1c1a; --line: #2a2a28;
+      color-scheme: dark;
+    }
+  }
+  :root[data-theme="dark"] {
+    --bg: #111110; --fg: #e8e8e4; --fg2: #b0b0a8; --muted: #6a6a64;
+    --accent: #60a5fa; --accent-hover: #93bbfd;
+    --card-bg: #1c1c1a; --line: #2a2a28;
+    color-scheme: dark;
+  }
+  * { box-sizing: border-box; margin: 0; }
+  body {
+    background: var(--bg); color: var(--fg);
+    font: 400 17px/1.7 var(--font-body);
+    min-height: 100vh;
+    display: flex; flex-direction: column;
+  }
+  a { color: var(--accent); text-decoration: none; transition: color .15s; }
+  a:hover { color: var(--accent-hover); }
+
+  .wrap { max-width: 720px; width: 100%; margin: 0 auto; padding: 0 24px; }
+
+  /* NAV */
+  nav { border-bottom: 1px solid var(--line); padding: 18px 0; }
+  nav .inner { display: flex; align-items: center; justify-content: space-between; gap: 16px; flex-wrap: wrap; }
+  nav .logo { font: 700 20px/1 var(--font-display); color: var(--fg); text-decoration: none; letter-spacing: -.02em; }
+  nav .links { display: flex; gap: 24px; font: 500 15px/1 var(--font-body); }
+  nav .links a { color: var(--fg2); }
+  nav .links a:hover { color: var(--accent); }
+
+  /* HERO */
+  .hero { padding: 80px 0 60px; }
+  .hero h1 {
+    font: 700 48px/1.1 var(--font-display); letter-spacing: -.03em;
+    margin-bottom: 16px;
+  }
+  .hero .tagline {
+    font-size: 20px; color: var(--fg2); max-width: 520px;
+    margin-bottom: 28px;
+  }
+  .hero .socials { display: flex; gap: 16px; flex-wrap: wrap; }
+  .hero .socials a {
+    display: inline-flex; align-items: center; gap: 8px;
+    font: 500 15px/1 var(--font-body); color: var(--fg);
+    padding: 10px 18px; border-radius: 8px; background: var(--card-bg);
+    border: 1px solid var(--line); transition: border-color .15s, background .15s;
+  }
+  .hero .socials a:hover { border-color: var(--accent); background: var(--bg); }
+  .hero .socials svg { width: 18px; height: 18px; fill: currentColor; flex-shrink: 0; }
+
+  /* SECTION */
+  section { padding: 40px 0 60px; }
+  section h2 {
+    font: 700 28px/1.2 var(--font-display); letter-spacing: -.02em;
+    margin-bottom: 24px; text-wrap: balance;
+  }
+
+  /* ARTICLE CARDS */
+  .articles { display: flex; flex-direction: column; gap: 16px; }
+  .card {
+    display: block; padding: 24px; border-radius: 10px;
+    background: var(--card-bg); border: 1px solid var(--line);
+    transition: border-color .15s, transform .15s;
+  }
+  .card:hover { border-color: var(--accent); transform: translateY(-2px); }
+  .card .label {
+    font: 600 12px/1 var(--font-body); letter-spacing: .06em;
+    text-transform: uppercase; color: var(--accent); margin-bottom: 8px;
+  }
+  .card h3 {
+    font: 600 20px/1.3 var(--font-display); color: var(--fg);
+    letter-spacing: -.01em; margin-bottom: 6px;
+  }
+  .card p { font-size: 15px; color: var(--fg2); margin: 0; }
+
+  /* FOOTER */
+  footer {
+    margin-top: auto; border-top: 1px solid var(--line);
+    padding: 24px 0; font-size: 14px; color: var(--muted); text-align: center;
+  }
+
+  @media (max-width: 600px) {
+    .hero h1 { font-size: 36px; }
+    .hero { padding: 48px 0 40px; }
+    .card { padding: 18px; }
+  }
+</style>
+</head>
+<body>
+
+<nav><div class="wrap inner">
+  <a href="index.html" class="logo">MP</a>
+  <div class="links">
+    <a href="index.html">Home</a>
+    <a href="blog.html">Blog</a>
+  </div>
+</div></nav>
+
+<main class="wrap">
+  <div class="hero">
+    <h1>Melroy Pereira</h1>
+    <p class="tagline">Researcher and engineer exploring deep learning through hands-on re-implementations of computer vision papers.</p>
+    <div class="socials">
+      <a href="https://www.linkedin.com/in/melroyepereira/" target="_blank" rel="noopener">
+        <svg viewBox="0 0 24 24"><path d="M20.447 20.452h-3.554v-5.569c0-1.328-.027-3.037-1.852-3.037-1.853 0-2.136 1.445-2.136 2.939v5.667H9.351V9h3.414v1.561h.046c.477-.9 1.637-1.85 3.37-1.85 3.601 0 4.267 2.37 4.267 5.455v6.286zM5.337 7.433a2.062 2.062 0 01-2.063-2.065 2.064 2.064 0 112.063 2.065zm1.782 13.019H3.555V9h3.564v11.452zM22.225 0H1.771C.792 0 0 .774 0 1.729v20.542C0 23.227.792 24 1.771 24h20.451C23.2 24 24 23.227 24 22.271V1.729C24 .774 23.2 0 22.222 0h.003z"/></svg>
+        LinkedIn
+      </a>
+      <a href="https://github.com/Optimus-Q" target="_blank" rel="noopener">
+        <svg viewBox="0 0 24 24"><path d="M12 .297c-6.63 0-12 5.373-12 12 0 5.303 3.438 9.8 8.205 11.385.6.113.82-.258.82-.577 0-.285-.01-1.04-.015-2.04-3.338.724-4.042-1.61-4.042-1.61C4.422 18.07 3.633 17.7 3.633 17.7c-1.087-.744.084-.729.084-.729 1.205.084 1.838 1.236 1.838 1.236 1.07 1.835 2.809 1.305 3.495.998.108-.776.417-1.305.76-1.605-2.665-.3-5.466-1.332-5.466-5.93 0-1.31.465-2.38 1.235-3.22-.135-.303-.54-1.523.105-3.176 0 0 1.005-.322 3.3 1.23.96-.267 1.98-.399 3-.405 1.02.006 2.04.138 3 .405 2.28-1.552 3.285-1.23 3.285-1.23.645 1.653.24 2.873.12 3.176.765.84 1.23 1.91 1.23 3.22 0 4.61-2.805 5.625-5.475 5.92.42.36.81 1.096.81 2.22 0 1.606-.015 2.896-.015 3.286 0 .315.21.69.825.57C20.565 22.092 24 17.592 24 12.297c0-6.627-5.373-12-12-12"/></svg>
+        GitHub
+      </a>
+    </div>
+  </div>
+
+  <section>
+    <h2>Recent Research Re-implementations</h2>
+    <div class="articles">
+      <a href="apgcc_explained.html" class="card">
+        <div class="label">Crowd Counting</div>
+        <h3>Re-implementing APGCC: Auxiliary Point Guidance for Crowd Counting</h3>
+        <p>A deep dive into point-based crowd counting with auxiliary guidance and stable matching.</p>
+      </a>
+      <a href="histoformer_explainer.html" class="card">
+        <div class="label">Image Restoration</div>
+        <h3>Histoformer: Histogram Self-Attention for All-Weather Image Restoration</h3>
+        <p>Exploring histogram-based self-attention mechanisms for restoring images degraded by rain, haze, and snow.</p>
+      </a>
+    </div>
+  </section>
+</main>
+
+<footer><div class="wrap">&copy; 2026 Melroy Pereira</div></footer>
+
+</body>
+</html>
