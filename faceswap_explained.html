@@ -1,0 +1,605 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Facial Identity Swapping through Latent Space Manipulation using Knowledge Distillation</title>
+<style>
+  :root {
+    --bg:#fcfcfb; --ink:#0b0b0b; --ink2:#52514e; --muted:#898781; --line:#e1e0d9;
+    --accent:#2a78d6; --accent-soft:#eaf2fc; --warn:#b4541d; --warn-soft:#fdf1ea;
+    --code-bg:#f4f3ef; --code-ink:#1f1e1c;
+  }
+  * { box-sizing:border-box; }
+  html { scroll-behavior:smooth; }
+  body { margin:0; background:var(--bg); color:var(--ink);
+         font:17px/1.7 Georgia, 'Iowan Old Style', 'Times New Roman', serif; }
+  .wrap { max-width:780px; margin:0 auto; padding:56px 22px 96px; }
+  header .kicker { font:600 13px/1 system-ui, -apple-system, 'Segoe UI', sans-serif; letter-spacing:.08em;
+                    text-transform:uppercase; color:var(--accent); }
+  h1 { font:700 40px/1.15 system-ui, -apple-system, 'Segoe UI', sans-serif; letter-spacing:-.02em; margin:14px 0 14px; }
+  .dek { font-size:20px; color:var(--ink2); margin:0 0 18px; }
+  .meta { font:14px/1.5 system-ui, sans-serif; color:var(--muted); border-bottom:1px solid var(--line); padding-bottom:22px; }
+  .meta a { color:var(--ink2); }
+  nav.toc { font:15px/1.6 system-ui, sans-serif; background:#f6f5f1; border-radius:10px; padding:16px 22px; margin:28px 0 8px; }
+  nav.toc b { display:block; font-size:12px; letter-spacing:.08em; text-transform:uppercase; color:var(--muted); margin-bottom:6px; }
+  nav.toc ol { margin:0; padding-left:20px; columns:2; column-gap:28px; }
+  nav.toc a { color:var(--ink); text-decoration:none; } nav.toc a:hover { color:var(--accent); }
+  h2 { font:700 27px/1.25 system-ui, sans-serif; letter-spacing:-.01em; margin:60px 0 10px; }
+  h3 { font:650 19px/1.3 system-ui, sans-serif; margin:34px 0 6px; }
+  p { margin:0 0 18px; }
+  a { color:var(--accent); }
+  figure { margin:30px 0; }
+  figure img { width:100%; display:block; border:1px solid var(--line); border-radius:8px; background:#fff; }
+  figcaption { font:14px/1.5 system-ui, sans-serif; color:var(--ink2); margin-top:8px; }
+  figcaption b { color:var(--ink); }
+  .eq { font:18px/1.6 'Cambria Math', 'STIX Two Math', Georgia, serif; background:#fff; border:1px solid var(--line);
+         border-radius:8px; padding:14px 18px; margin:18px 0 22px; overflow-x:auto; white-space:nowrap; }
+  .eq .tag { float:right; color:var(--muted); font:14px system-ui, sans-serif; margin-top:4px; }
+  pre { background:var(--code-bg); color:var(--code-ink); border-radius:8px; padding:16px 18px; margin:16px 0 26px;
+        overflow-x:auto; font:13.5px/1.6 ui-monospace, 'SF Mono', Menlo, Consolas, monospace; border:1px solid var(--line); }
+  code { font-family:ui-monospace, 'SF Mono', Menlo, Consolas, monospace; font-size:.88em; }
+  p code, li code, td code { background:var(--code-bg); padding:1px 5px; border-radius:4px; }
+  .k { color:#7a3e9d; font-weight:600; } .s { color:#2f7d32; } .c { color:#8a8780; font-style:italic; }
+  .n { color:#b4541d; } .b { color:#1c5cab; }
+  .snip-title { font:600 13px/1 system-ui, sans-serif; color:var(--muted); margin:22px 0 -8px; letter-spacing:.02em; }
+  .callout { border-left:4px solid var(--accent); background:var(--accent-soft); padding:14px 18px; border-radius:0 8px 8px 0; margin:22px 0; }
+  .callout.warn { border-color:var(--warn); background:var(--warn-soft); }
+  .callout p:last-child { margin-bottom:0; }
+  .callout .lbl { font:700 12px/1 system-ui, sans-serif; letter-spacing:.08em; text-transform:uppercase; display:block; margin-bottom:8px; color:var(--accent); }
+  .callout.warn .lbl { color:var(--warn); }
+  table { border-collapse:collapse; width:100%; font:14.5px/1.45 system-ui, sans-serif; margin:16px 0 26px; }
+  th, td { text-align:left; padding:8px 10px; border-bottom:1px solid var(--line); vertical-align:top; }
+  th { color:var(--ink2); font-weight:600; font-size:13px; text-transform:uppercase; letter-spacing:.04em; }
+  ul, ol { padding-left:22px; } li { margin-bottom:6px; }
+  .pipeline { display:flex; flex-wrap:wrap; gap:8px; align-items:center; font:600 13.5px/1.3 system-ui, sans-serif; margin:20px 0 26px; }
+  .pipeline span { background:#fff; border:1px solid var(--line); border-radius:6px; padding:8px 11px; }
+  .pipeline span.hot { border-color:var(--accent); color:var(--accent); }
+  .pipeline i { color:var(--muted); font-style:normal; }
+  footer { margin-top:70px; padding-top:22px; border-top:1px solid var(--line); font:14px/1.6 system-ui, sans-serif; color:var(--muted); }
+  @media (max-width:640px) {
+    h1 { font-size:31px; } nav.toc ol { columns:1; }
+  }
+</style>
+</head>
+<body>
+<article class="wrap">
+
+<header>
+  <div class="kicker">Research project · Face swapping · Deep learning</div>
+  <h1>Facial identity swapping through latent space manipulation using knowledge distillation</h1>
+  <p style="font:14px/1 system-ui,sans-serif;color:var(--muted);margin:0 0 14px;">2024</p>
+  <p class="dek">A SimSwap-based pipeline that decomposes the face-swapping generator into encoder, bottleneck and decoder, training each via knowledge distillation from a monolithic teacher.</p>
+  <div class="meta">
+    Code repo: <a href="https://github.com/Optimus-Q/FaceSwap">github.com/Optimus-Q/FaceSwap</a> ·
+    Model weights: <a href="https://huggingface.co/OnYourLeft/faceswap-weights">OnYourLeft/faceswap-weights</a> ·
+    <a href="https://youtu.be/X4Uipiy8dZU">Video demo</a>
+  </div>
+</header>
+
+<nav class="toc">
+  <b>Contents</b>
+  <ol>
+    <li><a href="#problem">The problem</a></li>
+    <li><a href="#approach">The approach</a></li>
+    <li><a href="#pipeline">Full pipeline</a></li>
+    <li><a href="#identity">Identity extraction</a></li>
+    <li><a href="#generator">Generator architecture</a></li>
+    <li><a href="#distillation">Knowledge distillation</a></li>
+    <li><a href="#losses">Loss functions</a></li>
+    <li><a href="#blending">Face parsing &amp; blending</a></li>
+    <li><a href="#training">Training setup</a></li>
+    <li><a href="#results">Results</a></li>
+    <li><a href="#usage">Running the code</a></li>
+    <li><a href="#takeaways">Takeaways</a></li>
+  </ol>
+</nav>
+
+<main>
+
+<!-- 1 -->
+<section id="problem">
+<h2>1. The problem</h2>
+
+<p>Face swapping replaces the identity of a face in a target image or video with the identity from a source image, while keeping the target's pose, expression, lighting and background intact. The core challenge is <em>disentangling identity from attributes</em>: the swapped face should look like the source person, but with the target person's expression and head orientation.</p>
+
+<p>Early GAN-based methods such as FaceShifter and SimSwap solved this with large monolithic generators. They produce high-quality results, but the full generator is expensive at inference and hard to adapt. This project takes the SimSwap architecture and decomposes it into three separate modules — an encoder, an AdaIN bottleneck, and a decoder — trained via knowledge distillation from the original monolithic generator. The result is a modular pipeline where each stage can be swapped, fine-tuned, or compressed independently.</p>
+</section>
+
+<!-- 2 -->
+<section id="approach">
+<h2>2. The approach</h2>
+
+<p>The original SimSwap generator (<code>Generator_Adain_Upsample</code>) is a single U-Net-style network: it encodes the target face, injects the source identity through AdaIN layers in the bottleneck, and decodes the swapped result. The key idea here is to split this into three independently trainable components:</p>
+
+<ol>
+  <li><strong>Encoder</strong> — downsamples the target face from 224×224 to a 512-channel feature map at 28×28</li>
+  <li><strong>Bottleneck (BN_layer)</strong> — five ResNet blocks with Adaptive Instance Normalisation (AdaIN), where the source identity vector modulates the target features</li>
+  <li><strong>Decoder</strong> — upsamples back to 224×224 RGB</li>
+</ol>
+
+<p>Each component is trained to match the corresponding intermediate outputs of the full teacher model, using knowledge distillation. This means the student encoder must produce the same latent as the teacher's encoder path, and so on.</p>
+
+<div class="callout">
+  <span class="lbl">Key insight</span>
+  <p>Decomposition via distillation is not about compression here — it is about <em>modularity</em>. Once trained, you can replace the decoder with a higher-resolution variant, swap the identity network, or add post-processing stages, all without retraining the full pipeline.</p>
+</div>
+</section>
+
+<!-- 3 -->
+<section id="pipeline">
+<h2>3. Full pipeline</h2>
+
+<p>At inference time, a single call to <code>SimSwap.__call__</code> runs this sequence:</p>
+
+<div class="pipeline">
+  <span>Source image</span> <i>→</i>
+  <span>SCRFD detect</span> <i>→</i>
+  <span>FFHQ align</span> <i>→</i>
+  <span>ArcFace ID</span> <i>→</i>
+  <span class="hot">Encoder</span> <i>→</i>
+  <span class="hot">BN (AdaIN)</span> <i>→</i>
+  <span class="hot">Decoder</span> <i>→</i>
+  <span>BiSeNet mask</span> <i>→</i>
+  <span>Soft erosion</span> <i>→</i>
+  <span>Warp back</span> <i>→</i>
+  <span>Blend</span>
+</div>
+
+<p>The blue stages are the core generator, decomposed from SimSwap. The surrounding stages handle face detection (SCRFD), alignment to FFHQ landmarks, identity extraction (ArcFace IR-SE50), face parsing (BiSeNet) for masking, and affine warp-back to place the swapped face into the original frame.</p>
+
+<p class="snip-title">SimSwap.__call__ — the full forward pass</p>
+<pre><span class="k">def</span> <span class="b">__call__</span>(self, att_image):
+    <span class="c"># Extract source identity (once, cached after first call)</span>
+    <span class="k">if</span> self.id_latent <span class="k">is</span> <span class="k">None</span>:
+        align_id_imgs, _, _ = self.run_detect_align(self.id_image, for_id=<span class="k">True</span>)
+        src112 = F.interpolate(self.to_tensor(align_id_imgs[<span class="n">0</span>]).unsqueeze(<span class="n">0</span>), (<span class="n">112</span>, <span class="n">112</span>))
+        self.id_latent, _ = self.face_id_net(src112)
+        self.id_latent = F.normalize(self.id_latent, p=<span class="n">2</span>, dim=<span class="n">1</span>)
+
+    <span class="c"># Detect &amp; align all faces in the target</span>
+    align_att_imgs, att_transforms, _ = self.run_detect_align(att_image)
+
+    <span class="c"># Core swap: Encoder → Bottleneck (with identity injection) → Decoder</span>
+    tgt224 = self.to_tensor(align_att_imgs[<span class="n">0</span>]).unsqueeze(<span class="n">0</span>)
+    target_latent = self.encoder_(tgt224)
+    target_latent = self.bottleneck_(target_latent, self.id_latent)
+    swapped_img = self.simswap_net(target_latent)
+
+    <span class="c"># Get face mask from BiSeNet, apply soft erosion</span>
+    face_mask, ignore_mask_ids = self.bise_net.get_mask(...)
+    soft_face_mask, _ = self.smooth_mask(face_mask)
+
+    <span class="c"># Warp swapped face back and blend with original frame</span>
+    <span class="k">return</span> soft_face_mask * target_image + (<span class="n">1</span> - soft_face_mask) * att_image</pre>
+</section>
+
+<!-- 4 -->
+<section id="identity">
+<h2>4. Identity extraction with ArcFace</h2>
+
+<p>The source face's identity is encoded by an ArcFace model (IR-SE50 architecture with Squeeze-and-Excitation blocks). The aligned source face is resized to 112×112 and passed through the network, producing a 512-dimensional embedding that captures identity-specific features — face shape, eye spacing, nose structure — while being invariant to expression and pose.</p>
+
+<p class="snip-title">ArcFace identity encoding — ResNet with IR blocks</p>
+<pre><span class="k">class</span> <span class="b">ResNet</span>(nn.Module):
+    <span class="k">def</span> <span class="b">__init__</span>(self, block, layers, use_se=<span class="k">True</span>):
+        self.conv1 = nn.Conv2d(<span class="n">3</span>, <span class="n">64</span>, kernel_size=<span class="n">3</span>, stride=<span class="n">1</span>)
+        self.layer1 = self._make_layer(block, <span class="n">64</span>,  layers[<span class="n">0</span>])  <span class="c"># 3 blocks</span>
+        self.layer2 = self._make_layer(block, <span class="n">128</span>, layers[<span class="n">1</span>], stride=<span class="n">2</span>)  <span class="c"># 4 blocks</span>
+        self.layer3 = self._make_layer(block, <span class="n">256</span>, layers[<span class="n">2</span>], stride=<span class="n">2</span>)  <span class="c"># 23 blocks</span>
+        self.layer4 = self._make_layer(block, <span class="n">512</span>, layers[<span class="n">3</span>], stride=<span class="n">2</span>)  <span class="c"># 3 blocks</span>
+        self.fc = nn.Linear(<span class="n">512</span> * <span class="n">7</span> * <span class="n">7</span>, <span class="n">512</span>)  <span class="c"># → 512-d embedding</span></pre>
+
+<p>Each <code>IRBlock</code> uses a BN → Conv → BN → PReLU → Conv → BN → SE structure. The SE (Squeeze-and-Excitation) block recalibrates channel responses by learning channel-wise attention weights via a small FC bottleneck.</p>
+
+<p class="snip-title">SE block — channel attention</p>
+<pre><span class="k">class</span> <span class="b">SEBlock</span>(nn.Module):
+    <span class="k">def</span> <span class="b">forward</span>(self, x):
+        b, c, _, _ = x.size()
+        y = self.avg_pool(x).view(b, c)         <span class="c"># global average pool → (B, C)</span>
+        y = self.fc(y).view(b, c, <span class="n">1</span>, <span class="n">1</span>)         <span class="c"># FC → sigmoid → (B, C, 1, 1)</span>
+        <span class="k">return</span> x * y                              <span class="c"># channel-wise reweighting</span></pre>
+
+<p>The resulting 512-d vector is L2-normalised before being fed to the bottleneck's AdaIN layers.</p>
+</section>
+
+<!-- 5 -->
+<section id="generator">
+<h2>5. Generator architecture: Encoder → Bottleneck → Decoder</h2>
+
+<h3>5.1 Encoder</h3>
+<p>The encoder takes a 224×224 target face crop and produces a 512-channel spatial feature map at 28×28 resolution through three strided convolution blocks, each followed by BatchNorm and ReLU:</p>
+
+<pre><span class="c"># 224×224×3 → 224×224×64 → 112×112×128 → 56×56×256 → 28×28×512</span>
+<span class="k">class</span> <span class="b">Encoder</span>(nn.Module):
+    <span class="k">def</span> <span class="b">__init__</span>(self, input_nc=<span class="n">3</span>, output_nc=<span class="n">3</span>, latent_size=<span class="n">512</span>):
+        self.first_layer = nn.Sequential(ReflectionPad2d(<span class="n">3</span>), Conv2d(<span class="n">3</span>, <span class="n">64</span>, <span class="n">7</span>), BN, ReLU)
+        self.down1 = nn.Sequential(Conv2d(<span class="n">64</span>,  <span class="n">128</span>, <span class="n">3</span>, stride=<span class="n">2</span>), BN, ReLU)
+        self.down2 = nn.Sequential(Conv2d(<span class="n">128</span>, <span class="n">256</span>, <span class="n">3</span>, stride=<span class="n">2</span>), BN, ReLU)
+        self.down3 = nn.Sequential(Conv2d(<span class="n">256</span>, <span class="n">512</span>, <span class="n">3</span>, stride=<span class="n">2</span>), BN, ReLU)</pre>
+
+<h3>5.2 Bottleneck — AdaIN identity injection</h3>
+<p>The bottleneck is where identity transfer happens. It consists of five <code>ResnetBlock_Adain</code> blocks. Each block applies two convolutions with Instance Normalisation, and after each conv the <code>ApplyStyle</code> module modulates the features using the source identity vector:</p>
+
+<div class="eq">
+  <span class="tag">AdaIN</span>
+  <em>y</em> = (<em>s</em><sub>scale</sub> + 1) · InstanceNorm(<em>x</em>) + <em>s</em><sub>shift</sub> , where [<em>s</em><sub>scale</sub>, <em>s</em><sub>shift</sub>] = Linear(<em>z</em><sub>id</sub>)
+</div>
+
+<p>The 512-d identity vector <em>z</em><sub>id</sub> is projected through a linear layer to produce per-channel scale and shift parameters. This is exactly the mechanism from StyleGAN's style injection — but here the "style" is a face identity embedding rather than a random latent code.</p>
+
+<p class="snip-title">ApplyStyle — the AdaIN operation</p>
+<pre><span class="k">class</span> <span class="b">ApplyStyle</span>(nn.Module):
+    <span class="k">def</span> <span class="b">__init__</span>(self, latent_size, channels):
+        self.linear = nn.Linear(latent_size, channels * <span class="n">2</span>)  <span class="c"># scale + shift</span>
+
+    <span class="k">def</span> <span class="b">forward</span>(self, x, latent):
+        style = self.linear(latent)                <span class="c"># (B, C×2)</span>
+        style = style.view(-<span class="n">1</span>, <span class="n">2</span>, x.size(<span class="n">1</span>), <span class="n">1</span>, <span class="n">1</span>)  <span class="c"># (B, 2, C, 1, 1)</span>
+        x = x * (style[:, <span class="n">0</span>] + <span class="n">1.0</span>) + style[:, <span class="n">1</span>]  <span class="c"># scale &amp; shift</span>
+        <span class="k">return</span> x</pre>
+
+<p>Each ResNet-AdaIN block has two such injections (after each conv), so five blocks means ten identity modulations total. This repeated injection ensures the identity signal is deeply woven into the feature representation.</p>
+
+<h3>5.3 Decoder</h3>
+<p>The decoder mirrors the encoder: three bilinear-upsample + Conv + BN + ReLU blocks, followed by a ReflectionPad + Conv + Tanh final layer that outputs a 224×224 RGB image in [0, 1]:</p>
+
+<pre><span class="c"># 28×28×512 → 56×56×256 → 112×112×128 → 224×224×64 → 224×224×3</span>
+<span class="k">class</span> <span class="b">Decoder</span>(nn.Module):
+    <span class="k">def</span> <span class="b">forward</span>(self, x):
+        x = self.up3(x)        <span class="c"># 512 → 256, ×2 upsample</span>
+        x = self.up2(x)        <span class="c"># 256 → 128, ×2 upsample</span>
+        x = self.up1(x)        <span class="c"># 128 → 64,  ×2 upsample</span>
+        x = self.last_layer(x) <span class="c"># 64  → 3,   Tanh</span>
+        x = (x + <span class="n">1</span>) / <span class="n">2</span>       <span class="c"># [-1,1] → [0,1]</span>
+        <span class="k">return</span> x</pre>
+</section>
+
+<!-- 6 -->
+<section id="distillation">
+<h2>6. Knowledge distillation</h2>
+
+<p>The original SimSwap generator (<code>Generator_Adain_Upsample</code>) is the teacher. It has the same encoder–bottleneck–decoder structure but as a single monolithic network with six AdaIN ResNet blocks. The student models are the three separate modules described above.</p>
+
+<p>Training proceeds in three stages:</p>
+
+<ol>
+  <li><strong>Encoder distillation</strong> — the student encoder is trained to minimise the L2 distance between its output and the teacher encoder's output (the feature map after <code>down3</code>) for the same input</li>
+  <li><strong>Bottleneck distillation</strong> — with the student encoder frozen, the student bottleneck is trained to match the teacher bottleneck's output given the same encoder features and identity vector</li>
+  <li><strong>Decoder distillation</strong> — with encoder and bottleneck frozen, the student decoder is trained to match the teacher's RGB output from the same bottleneck features</li>
+</ol>
+
+<div class="callout">
+  <span class="lbl">Why not end-to-end?</span>
+  <p>Stage-wise distillation is simpler to debug — if the decoder's output is wrong, you know the bottleneck features are correct (they were frozen and already validated), so the problem is in the decoder alone. It also allows mixing-and-matching: a decoder trained on higher resolution data can be dropped in without retraining the encoder or bottleneck.</p>
+</div>
+
+<p>The teacher model (<code>Encoder_Real</code>) uses the full SimSwap weights from <code>simswap_224_latest_net_G.pth</code> (210 MB) with 9 AdaIN ResNet blocks, while the student bottleneck uses only 5 blocks — a 44% reduction. The teacher was originally trained on the VGGFace2 dataset at 224×224 resolution.</p>
+
+<p class="snip-title">Teacher model — full SimSwap loaded as Encoder_Real</p>
+<pre><span class="c"># Teacher: 9 AdaIN blocks, 210 MB</span>
+encoder_real = Encoder_Real(input_nc=<span class="n">3</span>, output_nc=<span class="n">3</span>, latent_size=<span class="n">512</span>, n_blocks=<span class="n">9</span>).to(device)
+encoder_real.load_state_dict(torch.load(<span class="s">"./weights/simswap_224_latest_net_G.pth"</span>))
+encoder_real.eval()
+
+<span class="c"># Student: separate Encoder (frozen) + BN_layer (5 blocks, trainable) + Decoder (frozen)</span>
+encoder_ = Encoder(input_nc=<span class="n">3</span>, output_nc=<span class="n">3</span>, latent_size=<span class="n">512</span>).to(device)
+bottleneck_ = BN_layer(n_blocks=<span class="n">5</span>).to(device)
+decoder_ = Decoder().to(device)
+
+<span class="c"># Only the bottleneck is optimised</span>
+optimizer_BN = torch.optim.Adam(bottleneck_.parameters(), lr=<span class="n">0.004</span>, betas=(<span class="n">0.0</span>, <span class="n">0.999</span>))</pre>
+
+<div class="callout">
+  <span class="lbl">Model size</span>
+  <p>The full SimSwap teacher is 210 MB. The distilled student (encoder + bottleneck + decoder combined) is 122 MB — a 42% reduction in model size, with the bottleneck reduced from 9 to 5 AdaIN blocks.</p>
+</div>
+</section>
+
+<!-- 7 -->
+<section id="losses">
+<h2>7. Loss functions</h2>
+
+<p>The bottleneck is trained with a composite loss of seven terms. Each term targets a different aspect of fidelity — pixel-level accuracy, latent-space alignment, identity preservation, feature matching, and perceptual similarity. The teacher model produces the ground-truth targets; the student must match them.</p>
+
+<h3>7.1 Knowledge distillation response loss (L1)</h3>
+<p>The primary distillation signal. L1 (mean absolute error) between the teacher's swapped output and the student's swapped output, pixel by pixel:</p>
+
+<div class="eq">
+  <span class="tag">L<sub>1</sub></span>
+  ℒ<sub>KD</sub> = | <em>I</em><sub>teacher</sub> − <em>I</em><sub>student</sub> |<sub>1</sub>
+</div>
+
+<pre><span class="c"># Teacher swap: target through full Encoder_Real</span>
+swap_latent = encoder_real(tgt_tensor, face_id_src)
+swap_img = decoder_(swap_latent)
+
+<span class="c"># Student swap: target through Encoder → Bottleneck → Decoder</span>
+target_latent = encoder_(tgt_tensor)
+target_latent = bottleneck_(target_latent.detach(), face_id_src)
+pred_swap = decoder_(target_latent)
+
+<span class="c"># L1: pixel-level match between teacher and student outputs</span>
+l1 = F.l1_loss(swap_img.detach(), pred_swap)</pre>
+
+<h3>7.2 Latent loss (L2)</h3>
+<p>MSE between the teacher's bottleneck feature map and the student's, computed channel-by-channel across the 512 channels of the 28×28 spatial map. This forces the student bottleneck to produce the same internal representation as the teacher:</p>
+
+<div class="eq">
+  <span class="tag">L<sub>2</sub></span>
+  ℒ<sub>latent</sub> = Σ<sub>b,c</sub> MSE( <em>F</em><sub>teacher</sub>[b, c], <em>F</em><sub>student</sub>[b, c] )
+</div>
+
+<pre><span class="c"># L2: latent space alignment (512 channels × 28×28)</span>
+l2 = <span class="n">0.0</span>
+<span class="k">for</span> b <span class="k">in</span> range(batch_size):
+    <span class="k">for</span> i <span class="k">in</span> range(<span class="n">512</span>):
+        l2 += F.mse_loss(swap_latent[b][i,:,:].detach(), target_latent[b][i,:,:])</pre>
+
+<h3>7.3 Source identity loss (L3)</h3>
+<p>The swapped face should look like the source person. This is measured by cosine similarity between the source identity embedding and the identity embedding extracted from the student's output:</p>
+
+<div class="eq">
+  <span class="tag">L<sub>3</sub></span>
+  ℒ<sub>src-id</sub> = 1 − cos( <em>z</em><sub>source</sub>, <em>z</em><sub>student-swap</sub> )
+</div>
+
+<pre><span class="k">def</span> <span class="b">cosin_metric</span>(x1, x2):
+    <span class="k">return</span> torch.sum(x1 * x2, dim=<span class="n">1</span>) / (torch.norm(x1, dim=<span class="n">1</span>) * torch.norm(x2, dim=<span class="n">1</span>))
+
+<span class="c"># L3: student swap should match source identity</span>
+face_id_swap_pred, feat_swap_pred = arcnet(F.interpolate(pred_swap, (<span class="n">112</span>, <span class="n">112</span>)))
+face_id_swap_pred = F.normalize(face_id_swap_pred, p=<span class="n">2</span>, dim=<span class="n">1</span>)
+l3 = (<span class="n">1.0</span> - cosin_metric(face_id_src, face_id_swap_pred)).mean()</pre>
+
+<h3>7.4 Swap identity loss (L4)</h3>
+<p>The student's output should also match the teacher's output in identity space — i.e. the teacher and student swaps should represent the same person:</p>
+
+<div class="eq">
+  <span class="tag">L<sub>4</sub></span>
+  ℒ<sub>swap-id</sub> = 1 − cos( <em>z</em><sub>teacher-swap</sub>, <em>z</em><sub>student-swap</sub> )
+</div>
+
+<pre><span class="c"># L4: student swap identity should match teacher swap identity</span>
+face_id_swap_act, _ = arcnet(F.interpolate(swap_img, (<span class="n">112</span>, <span class="n">112</span>)))
+face_id_swap_act = F.normalize(face_id_swap_act, p=<span class="n">2</span>, dim=<span class="n">1</span>)
+l4 = (<span class="n">1.0</span> - cosin_metric(face_id_swap_act.detach(), face_id_swap_pred)).mean()</pre>
+
+<h3>7.5 Source feature loss (L5)</h3>
+<p>Beyond the final identity vector, the intermediate ArcFace feature maps also carry structural information. L5 matches the ArcFace feature maps (from all 4 residual stages) between the source face and the student's swap, pushing the student to preserve source-like features at every spatial scale:</p>
+
+<pre><span class="c"># L5: multi-scale ArcFace feature matching (source → student swap)</span>
+<span class="c"># feat_src and feat_swap_pred are lists of feature maps from 4 ResNet stages</span>
+l5 = <span class="n">0.0</span>
+<span class="k">for</span> b <span class="k">in</span> range(batch_size):
+    <span class="k">for</span> c <span class="k">in</span> range(len(feat_src)):
+        <span class="k">for</span> j <span class="k">in</span> range(feat_src[c].shape[<span class="n">1</span>]):
+            l5 += F.mse_loss(feat_src[c][b][j].detach(), feat_swap_pred[c][b][j])</pre>
+
+<h3>7.6 Swap feature loss (L6)</h3>
+<p>Similarly, the ArcFace feature maps from the student's swap should match those from the teacher's swap — ensuring structural consistency between teacher and student at every intermediate layer:</p>
+
+<pre><span class="c"># L6: multi-scale ArcFace feature matching (teacher swap → student swap)</span>
+l6 = <span class="n">0.0</span>
+<span class="k">for</span> b <span class="k">in</span> range(batch_size):
+    <span class="k">for</span> c <span class="k">in</span> range(len(feat_swap_act)):
+        <span class="k">for</span> j <span class="k">in</span> range(feat_swap_act[c].shape[<span class="n">1</span>]):
+            l6 += F.mse_loss(feat_swap_act[c][b][j].detach(), feat_swap_pred[c][b][j])</pre>
+
+<h3>7.7 Perceptual loss — LPIPS (L7)</h3>
+<p>LPIPS (Learned Perceptual Image Patch Similarity) using a VGG-16 backbone measures high-level perceptual similarity between teacher and student outputs. Unlike pixel-level L1, LPIPS captures structural and textural differences that align with human perception:</p>
+
+<div class="eq">
+  <span class="tag">L<sub>7</sub></span>
+  ℒ<sub>LPIPS</sub> = 1 − LPIPS( <em>I</em><sub>teacher</sub>, <em>I</em><sub>student</sub> )
+</div>
+
+<pre>lpips = piqa.LPIPS(network=<span class="s">"vgg"</span>).to(device)
+l7 = <span class="n">1.0</span> - lpips(swap_img.detach(), pred_swap)</pre>
+
+<h3>7.8 Total loss</h3>
+<p>The seven terms are combined with hand-tuned weights. The KD response loss gets weight 8, while identity, feature matching and perceptual losses each get weight 10. The latent loss is unweighted (its natural magnitude is already large due to summing over 512 channels):</p>
+
+<div class="eq">
+  <span class="tag">Total</span>
+  ℒ = 8 · ℒ<sub>KD</sub> + ℒ<sub>latent</sub> + 10 · ℒ<sub>src-id</sub> + 10 · ℒ<sub>swap-id</sub> + 10 · ℒ<sub>src-feat</sub> + 10 · ℒ<sub>swap-feat</sub> + 10 · ℒ<sub>LPIPS</sub>
+</div>
+
+<pre>loss = l1*<span class="n">8.0</span> + l2 + l3*<span class="n">10.0</span> + l4*<span class="n">10.0</span> + l5*<span class="n">10.0</span> + l6*<span class="n">10.0</span> + l7*<span class="n">10.0</span></pre>
+
+<table>
+  <tr><th>Loss</th><th>What it measures</th><th>Weight</th></tr>
+  <tr><td>L1 — KD response</td><td>Pixel-level match (teacher vs student output)</td><td>8.0</td></tr>
+  <tr><td>L2 — Latent</td><td>Bottleneck feature map alignment (512 × 28 × 28)</td><td>1.0</td></tr>
+  <tr><td>L3 — Source ID</td><td>Source identity preserved in swap (cosine)</td><td>10.0</td></tr>
+  <tr><td>L4 — Swap ID</td><td>Student matches teacher identity (cosine)</td><td>10.0</td></tr>
+  <tr><td>L5 — Source features</td><td>Multi-scale ArcFace feature match (source → student)</td><td>10.0</td></tr>
+  <tr><td>L6 — Swap features</td><td>Multi-scale ArcFace feature match (teacher → student)</td><td>10.0</td></tr>
+  <tr><td>L7 — LPIPS</td><td>Perceptual similarity (VGG-16)</td><td>10.0</td></tr>
+</table>
+
+<div class="callout">
+  <span class="lbl">Design rationale</span>
+  <p>The loss design has two layers of supervision: <strong>output-level</strong> (L1 pixel match, L7 perceptual) and <strong>representation-level</strong> (L2 latent, L3–L6 identity and features). The identity losses (L3, L4) prevent the student from producing faces that look plausible but belong to the wrong person. The feature losses (L5, L6) add multi-scale structural constraints that neither pixel nor identity losses alone capture.</p>
+</div>
+</section>
+
+<!-- 8 -->
+<section id="blending">
+<h2>8. Face parsing and blending</h2>
+
+<p>After the generator produces a swapped face crop, it needs to be placed back into the original frame. This is a two-step process:</p>
+
+<h3>8.1 Face parsing with BiSeNet</h3>
+<p>A BiSeNet (Bilateral Segmentation Network) model segments the aligned face into 19 semantic regions (skin, eyes, nose, lips, hair, etc.). The face mask includes regions [1, 2, 3, 4, 5, 6, 10, 12, 13] — covering skin, eyebrows, eyes, nose, upper/lower lip, and ears — while excluding the neck, hair, and background.</p>
+
+<p class="snip-title">Face parsing to binary mask</p>
+<pre>face_part_ids = [<span class="n">1</span>, <span class="n">2</span>, <span class="n">3</span>, <span class="n">4</span>, <span class="n">5</span>, <span class="n">6</span>, <span class="n">10</span>, <span class="n">12</span>, <span class="n">13</span>]
+<span class="k">for</span> valid_id <span class="k">in</span> face_part_ids:
+    face_map[parse == valid_id] = <span class="n">255</span></pre>
+
+<h3>8.2 Soft erosion</h3>
+<p>The binary mask has hard edges that would create visible seams when composited. A <code>SoftErosion</code> module smooths the mask boundary by convolving with a distance-weighted kernel, then thresholding:</p>
+
+<pre><span class="k">class</span> <span class="b">SoftErosion</span>(nn.Module):
+    <span class="k">def</span> <span class="b">__init__</span>(self, kernel_size=<span class="n">15</span>, threshold=<span class="n">0.6</span>, iterations=<span class="n">1</span>):
+        <span class="c"># Build distance-weighted kernel</span>
+        dist = sqrt((x - r)² + (y - r)²)
+        kernel = dist.max() - dist
+        kernel /= kernel.sum()
+
+    <span class="k">def</span> <span class="b">forward</span>(self, x):
+        <span class="k">for</span> i <span class="k">in</span> range(self.iterations - <span class="n">1</span>):
+            x = min(x, conv2d(x, kernel))     <span class="c"># iterative erosion</span>
+        x = conv2d(x, kernel)                  <span class="c"># final smooth pass</span>
+        x[x >= threshold] = <span class="n">1.0</span>               <span class="c"># hard inside</span>
+        x[x < threshold] /= x[x < threshold].max()  <span class="c"># soft boundary</span>
+        <span class="k">return</span> x</pre>
+
+<h3>8.3 Affine warp-back and alpha blend</h3>
+<p>The swapped face and soft mask are warped back to the original frame using the inverse of the alignment affine transform, then composited with standard alpha blending:</p>
+
+<div class="eq">
+  result = <em>M</em><sub>soft</sub> · <em>I</em><sub>swap</sub> + (1 − <em>M</em><sub>soft</sub>) · <em>I</em><sub>target</sub>
+</div>
+
+<p>Kornia's <code>warp_affine</code> handles the inverse transform with bilinear interpolation and border padding, keeping the blending differentiable end-to-end.</p>
+</section>
+
+<!-- 8 -->
+<section id="training">
+<h2>9. Training setup</h2>
+
+<table>
+  <tr><th>Aspect</th><th>Detail</th></tr>
+  <tr><td>Dataset</td><td>FFHQ 256 + CelebA Mask HQ (70k + 30k = 100k images, 75/25 train/eval split)</td></tr>
+  <tr><td>Resolution</td><td>224 × 224 (MTCNN alignment during training)</td></tr>
+  <tr><td>Teacher</td><td>SimSwap 224 (<code>Encoder_Real</code>, 9 AdaIN blocks, 210 MB)</td></tr>
+  <tr><td>Student bottleneck</td><td>5 ResnetBlock_Adain (10 AdaIN injections, trainable)</td></tr>
+  <tr><td>Student encoder/decoder</td><td>Frozen — pre-extracted from teacher weights</td></tr>
+  <tr><td>Optimiser</td><td>Adam (lr=0.004, β₁=0.0, β₂=0.999, ε=1e-8)</td></tr>
+  <tr><td>Batch size</td><td>8</td></tr>
+  <tr><td>Iterations</td><td>500,000</td></tr>
+  <tr><td>Identity network</td><td>ArcFace IR-SE50 ([3, 4, 23, 3] blocks), 512-d output</td></tr>
+  <tr><td>Face detector (training)</td><td>MTCNN for alignment</td></tr>
+  <tr><td>Face detector (inference)</td><td>SCRFD 10g (ONNX, 640×640 input)</td></tr>
+  <tr><td>Face parsing</td><td>BiSeNet (19 classes, 79999 iterations checkpoint)</td></tr>
+  <tr><td>Post-processing</td><td>Soft erosion (kernel 17, threshold 0.9, 7 iterations)</td></tr>
+  <tr><td>Total model size</td><td>Student: 122 MB (vs teacher: 210 MB, 42% reduction)</td></tr>
+</table>
+
+<p class="snip-title">Training loop — bottleneck distillation with 7 losses</p>
+<pre><span class="k">for</span> epoch <span class="k">in</span> range(<span class="n">0</span>, <span class="n">500000</span>):
+    bottleneck_.train()
+    src_tensor, tgt_tensor, _ = getdata(batch_size, train_images, device)
+
+    <span class="c"># ArcFace source identity</span>
+    src112 = F.interpolate(src_tensor, (<span class="n">112</span>, <span class="n">112</span>))
+    face_id_src, feat_src = arcnet(src112)
+    face_id_src = F.normalize(face_id_src, p=<span class="n">2</span>, dim=<span class="n">1</span>)
+
+    <span class="c"># Teacher forward pass (frozen)</span>
+    swap_latent = encoder_real(tgt_tensor, face_id_src)
+    swap_img = decoder_(swap_latent)
+
+    <span class="c"># Student forward pass (only bottleneck trainable)</span>
+    target_latent = encoder_(tgt_tensor)
+    target_latent = bottleneck_(target_latent.detach(), face_id_src)
+    pred_swap = decoder_(target_latent)
+
+    <span class="c"># All 7 losses computed, weighted sum</span>
+    loss = l1*<span class="n">8.0</span> + l2 + l3*<span class="n">10.0</span> + l4*<span class="n">10.0</span> + l5*<span class="n">10.0</span> + l6*<span class="n">10.0</span> + l7*<span class="n">10.0</span>
+
+    optimizer_BN.zero_grad()
+    loss.backward()
+    optimizer_BN.step()</pre>
+
+<div class="callout">
+  <span class="lbl">Training note</span>
+  <p>Only the bottleneck's parameters are optimised. The encoder, decoder, ArcFace, and teacher model are all frozen. At every 50 steps, evaluation images are saved showing source → target → teacher swap → student swap side by side.</p>
+</div>
+</section>
+
+<!-- 10 -->
+<section id="results">
+<h2>10. Results</h2>
+
+<p>Training was run for 500k iterations on a single GPU. The evaluation saves a grid of 8 images at every 50 steps, showing four rows: source face, target face, teacher (SimSwap) output, and student output.</p>
+
+<h3>10.1 Training convergence</h3>
+<p>Early training logs show the loss dropping from ~6,500 to ~5,700 within the first 50 epochs, with identity losses converging quickly:</p>
+
+<table>
+  <tr><th>Epoch</th><th>Total loss</th><th>Source ID loss (L3)</th><th>Swap ID loss (L4)</th></tr>
+  <tr><td>0</td><td>6,490</td><td>0.283</td><td>0.135</td></tr>
+  <tr><td>10</td><td>6,734</td><td>0.246</td><td>0.111</td></tr>
+  <tr><td>25</td><td>6,107</td><td>0.214</td><td>0.074</td></tr>
+  <tr><td>30</td><td>5,777</td><td>0.145</td><td>0.064</td></tr>
+  <tr><td>50 (eval)</td><td>6,467</td><td>0.247</td><td>0.119</td></tr>
+</table>
+
+<p>The source identity loss (L3) starts at ~0.28 (cosine distance) and drops to ~0.15 by epoch 30, meaning the student's swapped faces quickly converge to the correct source identity. The swap identity loss (L4) — matching teacher and student swap identities — drops even faster to ~0.06, confirming the student is closely tracking the teacher.</p>
+
+<h3>10.2 Model size comparison</h3>
+
+<table>
+  <tr><th>Model</th><th>AdaIN blocks</th><th>Size</th></tr>
+  <tr><td>SimSwap teacher (Encoder_Real)</td><td>9</td><td>210 MB</td></tr>
+  <tr><td>Distilled student (Encoder + BN + Decoder)</td><td>5</td><td>122 MB</td></tr>
+  <tr><td><strong>Reduction</strong></td><td><strong>44%</strong></td><td><strong>42%</strong></td></tr>
+</table>
+
+<div class="callout">
+  <span class="lbl">Qualitative results</span>
+  <p>The side-by-side comparison grids saved during training show that by epoch 50, the student model produces swaps visually indistinguishable from the teacher model. Both preserve the source identity accurately while maintaining the target's pose, expression, and lighting. See the <a href="https://youtu.be/X4Uipiy8dZU">video demo</a> for inference results on real video.</p>
+</div>
+</section>
+
+<!-- 11 -->
+<section id="usage">
+<h2>11. Running the code</h2>
+
+<p>Clone the repo and download the model weights from Hugging Face:</p>
+
+<pre>git clone https://github.com/Optimus-Q/FaceSwap.git
+cd FaceSwap
+pip install -r requirements.txt
+
+<span class="c"># Download all weights at once</span>
+pip install huggingface_hub
+huggingface-cli download OnYourLeft/faceswap-weights --local-dir .</pre>
+
+<p>For a <strong>single image swap</strong>, edit <code>configs/run_image.yaml</code> to set your source (<code>id_image</code>) and target (<code>att_image</code>), then run:</p>
+
+<pre>python app.py --config-name=run_image.yaml</pre>
+
+<p>For <strong>video</strong>, use <code>run_video.yaml</code> with <code>att_video</code> set to the input video path:</p>
+
+<pre>python app.py --config-name=run_video.yaml</pre>
+
+<p>The pipeline processes each frame independently, running face detection, alignment, the three-stage generator, face parsing, and blending per frame.</p>
+</section>
+
+<!-- 10 -->
+<section id="takeaways">
+<h2>12. Takeaways</h2>
+
+<ul>
+  <li><strong>Modular decomposition via distillation</strong> makes the pipeline practical to iterate on. Each component (encoder, bottleneck, decoder) can be improved independently without retraining the full generator.</li>
+  <li><strong>AdaIN is the identity transfer mechanism</strong> — the source face's 512-d embedding modulates feature statistics at every ResNet block in the bottleneck. Ten injections across five blocks ensure strong identity transfer.</li>
+  <li><strong>The surrounding pipeline matters as much as the generator.</strong> Face detection quality, alignment accuracy, face parsing precision, and soft-mask parameters all directly affect the final output quality. The generator only produces a 224×224 crop — everything else is geometry and compositing.</li>
+  <li><strong>Soft erosion for seamless blending</strong> is a simple but effective technique. The distance-weighted kernel produces a natural gradient at face boundaries, avoiding the hard-edge artifacts of binary masking.</li>
+</ul>
+</section>
+
+</main>
+
+<footer>
+  Code repo: <a href="https://github.com/Optimus-Q/FaceSwap">github.com/Optimus-Q/FaceSwap</a>.
+  Model weights: <a href="https://huggingface.co/OnYourLeft/faceswap-weights">Hugging Face</a>.
+  Code snippets from the PyTorch implementation.
+</footer>
+
+</article>
+</body>
+</html>
